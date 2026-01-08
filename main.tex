@@ -546,6 +546,78 @@ final_cv_score = np.mean(cv_scores)
 \end{verbatim}
 
 
+\subsection{Cz.3: Selekcja cech i optymalizacja modelu}
+W kolejnej części pracy wykonano dodatkową optymalizację, której celem było (1) sprawdzenie wpływu doboru cech na jakość klasyfikacji oraz (2) poprawa jakości predykcji poprzez strojenie hiperparametrów. Dla spójności porównań przyjęto metrykę $F_1$ (macro) raportowaną w walidacji krzyżowej oraz na zbiorze testowym.
+
+\subsubsection{Selekcja cech}
+W pierwszym kroku przeanalizowano zależności pomiędzy cechami (macierz korelacji), a następnie porównano dwa podejścia do selekcji cech:
+\begin{itemize}
+    \item \textbf{SelectKBest} (mutual information) — wybór $k$ cech o najwyższej zależności z etykietą.
+    \item \textbf{Permutation Importance} — ocena spadku jakości po losowej permutacji pojedynczej cechy.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{images/optimization/correlation_heatmap.png}
+    \caption{Macierz korelacji cech wykorzystana jako wstęp do selekcji cech (Cz.3).}
+    \label{fig:opt_corr_heatmap}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{images/optimization/feature_selection_comparison.png}
+    \caption{Porównanie jakości ($F_1$ macro) dla metod selekcji cech (Cz.3).}
+    \label{fig:opt_feature_selection_comparison}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{images/optimization/feature_selection_table.png}
+    \caption{Tabela porównawcza metod selekcji cech (Cz.3).}
+    \label{fig:opt_feature_selection_table}
+\end{figure}
+
+\subsubsection{Optymalizacja hiperparametrów (Grid Search, Bayesian, AutoML, GA)}
+Po wyłonieniu najlepszego modelu bazowego przeprowadzono strojenie hiperparametrów wyłącznie dla zwycięzcy (w celu ograniczenia kosztu obliczeń). Porównano następujące podejścia:
+\begin{itemize}
+    \item \textbf{GridSearchCV} — przeszukiwanie zdefiniowanej siatki parametrów.
+    \item \textbf{Optuna} — optymalizacja bayesowska (TPE) maksymalizująca wynik walidacji krzyżowej.
+    \item \textbf{TPOT} — podejście AutoML automatycznie dobierające model/pipeline.
+    \item \textbf{DEAP} — algorytm genetyczny strojący hiperparametry.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{images/optimization/hyperparam_methods_comparison.png}
+    \caption{Porównanie metod optymalizacji hiperparametrów: wynik walidacji krzyżowej vs wynik na teście (Cz.3).}
+    \label{fig:opt_hyperparam_methods_comparison}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{images/optimization/hyperparam_methods_table.png}
+    \caption{Tabela porównawcza metod optymalizacji hiperparametrów (Cz.3).}
+    \label{fig:opt_hyperparam_methods_table}
+\end{figure}
+
+\subsubsection{Zysk jakości: przed vs po optymalizacji}
+Końcowym krokiem było zestawienie zmian jakości względem konfiguracji bazowej.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{images/optimization/gains_table.png}
+    \caption{Tabela zysków jakości (baseline vs po optymalizacji) dla $F_1$ macro (Cz.3).}
+    \label{fig:opt_gains_table}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{images/optimization/before_after.png}
+    \caption{Wizualizacja porównania jakości przed i po optymalizacji (Cz.3).}
+    \label{fig:opt_before_after}
+\end{figure}
+
+
 
 \section{Podsumowanie}
 
@@ -554,6 +626,8 @@ Niniejszy projekt koncentrował się na problemie rekomendacji upraw w kontekśc
 W pierwszej kolejności dokonano przeglądu literatury, identyfikując kluczowe wyzwania w przetwarzaniu danych rolniczych, takie jak braki danych i potrzeba skalowania cech. Ponieważ oryginalny zbiór danych był kompletny, problem braków wartości został zasymulowany poprzez kontrolowane usunięcie 10\% danych z kolumn ph, temperature i humidity .
 
 Kluczowym elementem projektu był eksperyment "4x2", polegający na wygenerowaniu ośmiu wariantów zbioru danych. Stworzono cztery zbiory różniące się metodą imputacji braków: dwie proste (średnia, mediana) oraz dwie zaawansowane (KNNImputer oraz metoda mieszana wykorzystująca Random Forest). Następnie każdy z tych zbiorów został poddany dwóm metodom skalowania zaimplementowanym ręcznie: Normalizacji Min-Max oraz Standaryzacji.
+
+Dodatkowo, w Cz.3 przeprowadzono selekcję cech oraz optymalizację hiperparametrów najlepszego modelu. Porównano metody selekcji cech (Rys. \ref{fig:opt_feature_selection_comparison}, tabela: Rys. \ref{fig:opt_feature_selection_table}) oraz metody strojenia hiperparametrów (Rys. \ref{fig:opt_hyperparam_methods_comparison}, tabela: Rys. \ref{fig:opt_hyperparam_methods_table}). Wpływ optymalizacji na jakość podsumowano w postaci zestawienia zysków (Rys. \ref{fig:opt_gains_table}) oraz wykresu przed-vs-po (Rys. \ref{fig:opt_before_after}).
 
 Proste metody imputacji (średnia, mediana) prowadzą do sztucznej redukcji wariancji, co nienaturalnie "zwęża" rozkład danych.
 Metody zaawansowane (KNN, RF) znacznie lepiej zachowują naturalną dyspersję danych, co czyni zbiór bardziej wiarygodnym.
