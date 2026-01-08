@@ -1,0 +1,564 @@
+\documentclass[10pt,letterpaper]{article}
+
+\usepackage{polski}		
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{placeins}
+\PassOptionsToPackage{hyphens}{url}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{float}
+\lstloadlanguages{TeX}
+\lstset{
+	literate={ą}{{\k{a}}}1
+           {ć}{{\'c}}1
+           {ę}{{\k{e}}}1
+           {ó}{{\'o}}1
+           {ń}{{\'n}}1
+           {ł}{{\l{}}}1
+           {ś}{{\'s}}1
+           {ź}{{\'z}}1
+           {ż}{{\.z}}1
+           {Ą}{{\k{A}}}1
+           {Ć}{{\'C}}1
+           {Ę}{{\k{E}}}1
+           {Ó}{{\'O}}1
+           {Ń}{{\'N}}1
+           {Ł}{{\L{}}}1
+           {Ś}{{\'S}}1
+           {Ź}{{\'Z}}1
+           {Ż}{{\.Z}}1,
+	basicstyle=\footnotesize\ttfamily,
+}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% Include other packages here, before hyperref.
+
+\usepackage[breaklinks=true,bookmarks=false]{hyperref}
+
+\setcounter{page}{1}
+\begin{document}
+
+%%%%%%%%% TITLE
+\title{Report one}
+
+\author{First Author\\
+{\tt\small Wojciech Kuś}
+\and
+Second Author\\
+{\tt\small Aleksandra Orzech}
+}
+\maketitle
+%\thispagestyle{empty}
+\section{Abstract}
+
+Abstrakcja.
+
+\section{Wprowadzenie}
+\section{Zbiór danych}
+
+Analizowany w tym projekcie zbiór danych to \href{https://www.kaggle.com/datasets/atharvaingle/crop-recommendation-dataset}{Crop Recommendation Dataset}, publicznie dostępny na platformie Kaggle. Został on stworzony w celu wspierania budowy modeli uczenia maszynowego do rekomendacji upraw w rolnictwie precyzyjnym.
+
+Zbiór składa się z 2200 rekordów (obserwacji) i 8 kolumn. Każdy rekord reprezentuje pomiary warunków dla konkretnej działki rolnej. Kolumny te dzielą się na:\\[1em]
+
+7 cech wejściowych (atrybutów):
+    \begin{itemize}
+        \item N: Zawartość azotu w glebie (w mg/kg).
+        \item Zawartość fosforu w glebie (w mg/kg).
+        \item K: Zawartość potasu w glebie (w mg/kg).
+        \item temperature: Średnia temperatura otoczenia (w °C).
+        \item humidity: Średnia wilgotność względna powietrza (w \%).
+        \item ph: Wartość pH gleby.
+        \item rainfall: Suma opadów (w mm).\\[2em]
+    \end{itemize}
+
+    1 zmienną docelową (etykietę):
+    \begin{itemize}
+        \item label: Zmienna określająca typ uprawy, która była prowadzona w danych warunkach. Zbiór zawiera 22 unikalne klasy (m.in. ryż, kukurydza, juta, bawełna, kokos, papaja, pomarańcza, jabłko itd.).
+    \end{itemize}
+
+Wszystkie cechy wejściowe są numeryczne (typu float lub int). Oryginalny zbiór danych jest kompletny i nie zawiera żadnych brakujących wartości. Jak wskazano w przeglądzie literatury, problem braków danych został zasymulowany w sposób kontrolowany na potrzeby przeprowadzenia eksperymentów porównawczych.
+
+\section{Przegląd literatury}
+
+Współczesne rolnictwo w coraz większym stopniu opiera się na danych pomiarowych oraz na systemach informatycznych. Takie zjawisko określa się mianem rolnictwa precyzyjnego, którego zadaniem jest wspomaganie podejmowania decyzji biznesowych względem warunków glebowych i klimatycznych na poziomie pól lub ich fragmentów. W efekcie rośnie zapotrzebowanie na metody, które na podstawie dostępnych danych takich jak klimat, żyzność i skład gleby, poziom wilgoci w powietrzu, potrafią wesprzeć właściciela gospodarstwa w wyborze uprawy, zapewnianiu jej optymalnych warunków do rozwoju oraz minimalizacji negatywnego wpływu na środowisko \cite{10.3389/fagro.2025.1566201}.
+Jednocześnie prognozy działu ds. Wyżywienia i Rolnictwa ONZ - FAO wskazują, że do 2050 zapotrzebowanie na jedzenie na świecie wzrośnie wraz ze wzrostem liczby ludności, co wymaga zwiększenia światowej produkcji rolnej o około 70\%\cite{FAO2009Feeding} w stosunku do pierwszej dekady lat 2000. W konsekwencji znaczenie rolnictwa precyzyjnego i zapotrzebowania na takie rozwiązania rośnie.
+
+Jednym z takich rozwiązań są systemy rekomendacji upraw (ang. crop recommendation systems) wykorzystujące uczenie maszynowe. Ich zadaniem jest dobranie takiego gatunku rośliny, który jest najlepiej dostosowany do warunków które posiada rolnik i która najprawdopodobniej przyniesie mu największy zysk. Za kulisami takiego systemu zwykle stoi model uczenia maszynowego przyjmujący na wejściu takie dane jak zawartość składników mineralnych w glebie (azot, fosfor, potas), ph gleby, średnią temperaturę powietrza czy sumę opadów i na ich podstawie określa która z upraw jest w danym scenariuszu najlepsza. 
+
+
+W rozwijaniu takich systemów wykorzystuje się ogólnodostępne zbiory danych, a przykładem takiego zbioru jest Crop Recommendation Dataset. Zbiór ten zawieraja pomiary siedmiu cech opisujących warunki glebowe i klimatyczne: zawartość azotu, fosforu, potasu w glebie, pH gleby, temperatura i wilgotność powietrza oraz opady deszczu. Dla każdego takiego zestawu przypisana jest roślina uprawna która akurat była uprawiana w takich warunkach np. ryż. Zbiór ten jest często wykorzystywany jako punkt odniesienia do porówniania róznych algorytmów klasyfikacyjnych \cite{info16080632, Shastri2025CropRecommendation}.
+
+Istotnym elementem wstępnego przetwarzania danych w zadaniach klasyfikacyjnych jest skalowanie cech. W przypadku takich algorytmów jak k-najbliższych sąsiadów, maszyny wektorów nośnych czy modele liniowe różnice w skali zmiennych mogą prowadzić do dominacji części cech i pogorszenia jakości modelu. Z tego względu w wielu pracach dotyczących systemów rekomendacji upraw stosuje się normalizację lub standaryzację zmiennych wejściowych. Najczęściej wykorzystywane są dwie grupy metod: skalowanie typu Min-Max, które przekształca wartości cechy do zadanego przedziału (np. [0, 1]), oraz standaryzacja, polegająca na odjęciu średniej i podzieleniu przez odchylenie standardowe. Dobór odpowiedniego sposobu skalowania może wpływać na stabilność procesu uczenia i jakość ostatecznych predykcji, zwłaszcza w połączeniu z różnymi strategiami uzupełniania braków danych \cite{DEAMORIM2023109924}.
+
+Agregacja takich danych może być problematyczna i dane rzadko są kompletne. Pomiary właściwości gleby są kosztowne i czasochłonne, a czujniki, którymi zbierane są inne pomiary, mogą okresowo zawodzić. Skutkiem tego są brakujące miejscami dane glebowe jak i klimatyczne. W literaturze opisano różne podejścia do uzupełniania brakujących wartości. Do najprostszych należą metody oparte na zastępowaniu braków średnią, medianą lub inną stałą wartością. Bardziej zaawansowane techniki bazują na modelach regresyjnych, metodach k-najbliższych sąsiadów czy lasach losowych. W obszarze danych glebowych i środowiskowych analizowano m.in. wykorzystanie regresji oraz modeli opartych na uczeniu maszynowym do imputacji braków w pomiarach właściwości gleby. Wyniki tych badań sugerują, że odpowiednio dobrana metoda imputacji może znacząco poprawić jakość późniejszych analiz, w tym budowanych modeli predykcyjnych.
+
+Podsumowując, literatura wskazuje na rosnące znaczenie systemów rekomendacji upraw opartych na uczeniu maszynowym oraz na istotną rolę jakości danych wejściowych w tego typu rozwiązaniach\cite{Alwateer2024MissingData}. W wielu pracach zaproponowano różne algorytmy klasyfikacyjne oraz zestawy cech opisujących warunki glebowo-klimatyczne, jednak problem brakujących danych jest zazwyczaj traktowany w sposób uproszczony lub pomijany. Jednocześnie liczne badania nad imputacją danych glebowych i środowiskowych pokazują, że zastosowanie bardziej zaawansowanych metod uzupełniania braków, takich jak modele regresyjne czy metody oparte na uczeniu maszynowym, może znacząco poprawić jakość późniejszych analiz. Mniejszą uwagę poświęcono natomiast systematycznemu badaniu wpływu różnych metod imputacji oraz skalowania cech na jakość rekomendacji upraw w typowych zbiorach danych, takich jak Crop Recommendation Dataset. Niniejszy projekt wpisuje się w tę lukę badawczą. Jego celem jest porównanie kilku metod uzupełniania braków danych (prostych i bardziej zaawansowanych) oraz dwóch sposobów skalowania cech w zadaniu rekomendacji upraw na podstawie zbioru Crop Recommendation Dataset. Analizie poddano osiem wariantów zbioru danych, różniących się sposobem imputacji i skalowania, co pozwala ocenić wpływ tych decyzji przetwarzania wstępnego na jakość budowanych modeli klasyfikacyjnych.
+
+\section{Motivation}
+
+Rolnictwo przeżywa obecnie dynamiczną rewolucję technologiczną i jest coraz częściej wzbogacany o nowinki takie jak drony monitorujące stan pól z powietrza, autonomiczne ciągniki, zaawansowane sensory IoT (Internetu Rzeczy) zbierające dane w czasie rzeczywistym, czy nawet precyzyjne systemy laserowe do selektywnego zwalczania szkodników i chwastów.
+
+% ... tekst przed pierwszą figurą ...
+
+\begin{figure}[H] % <--- ZMIANA TUTAJ
+    \centering
+    \includegraphics[width=0.75\linewidth]{21209.jpeg}
+    \caption{Globalny stan bezpieczeństwa żywnościowego - ogół}
+    \label{fig:placeholder}
+\end{figure}
+
+Czerwony/pomarańczowy oznacza, że ogólny system żywnościowy w kraju jest słaby (np. jedzenie jest za drogie, słabej jakości lub łańcuchy dostaw zawodzą), nawet jeśli kraj jest producentem.
+
+\begin{figure}[H] % <--- I ZMIANA TUTAJ
+    \centering
+    \includegraphics[width=\linewidth]{rp8q0gy73ma91.jpg}
+    \caption{Globalny stan bezpieczeństwa żywnościowego - dane dot. importu roślin/zbóż}
+    \label{fig:placeholder2}
+\end{figure}
+
+Czerwony/pomarańczowy: Kraje, które są krytycznie zależne od importu, aby wyżywić swoją populację (importują ponad 50\% kalorii).
+
+Zielony: Kraje, które są samowystarczalne lub są eksporterami netto żywności (produkują więcej niż konsumują).\\[1em]
+
+
+Jak wskazują twarde dane, choćby z raportu Global Food Security Index 2022, na świecie istnieją drastyczne dysproporcje w dostępie do żywności. Załączona mapa (Rysunek 1) wyraźnie pokazuje, że podczas gdy Ameryka Północna i Europa Zachodnia cieszą się bardzo wysokim poziomem bezpieczeństwa (indeksy powyżej 80), rozległe obszary Afryki i Azji Południowej znajdują się w krytycznej sytuacji (indeksy często poniżej 50).
+
+Odpowiedzią na te wyzwania jest właśnie rolnictwo precyzyjne - podejmowanie decyzji opartych na danych staje się kluczowe. Systemy rekomendacji upraw, oparte na analizie danych glebowych i klimatycznych, są fundamentalnym elementem transformacji. Pozwalają one rolnikom na podejmowanie świadomych decyzji, co może prowadzić do:
+
+    \begin{itemize}
+        \item Zwiększenia plonów poprzez optymalny dobór upraw do lokalnych warunków (kluczowe dla regionów o niskim indeksie bezpieczeństwa).
+        \item Redukcji kosztów przez unikanie nadmiernego lub nieodpowiedniego nawożenia.
+        \item Minimalizacji negatywnego wpływu na środowisko naturalne.
+    \end{itemize}
+
+
+
+\section{Evaluation}
+
+Jakiego oczekujecie Państwo wyniku. Jaki wynik będzie z punktu Państwa widzenia satysfakcjonujący i dlaczego? Czy wynik jaki Państwo otrzymacie pozwoli na użycie systemu po wdrożeniu?
+
+
+Oczekujemy, że nasz eksperyment pozwoli na sformułowanie jasnych wniosków dotyczących tego, która kombinacja metod imputacji i skalowania cech jest najbardziej efektywna dla zadania rekomendacji upraw na badanym zbiorze danych.
+
+Za satysfakcjonujący wynik uznamy wykazanie statystycznie istotnych różnic w metrykach oceny modeli (takich jak dokładność, precyzja, czy pełność) w zależności od zastosowanego potoku przetwarzania wstępnego.
+
+\section{Zasoby}
+
+Jakich zasobów będą Państwo używać, w czym będzie projekt zaimplementowany.
+
+Projekt jest zaimplementowany w języku Python oraz prowadzony w środowisku Google Colab. Biblioteki wykrozystane w projekcie:
+\begin{itemize}
+    \item Pandas
+    \item NumPy
+    \item Scikit-learn (sklearn)
+    \item Matplotlib / Seaborn
+\end{itemize}
+\section{Zastosowane metody}
+
+W ramach projektu porównane zostaną różne strategie przetwarzania wstępnego, obejmujące kombinacje metod imputacji oraz skalowania, a następnie oceniony zostanie ich wpływ na wybrane algorytmy klasyfikacyjne.
+
+\subsection{Metody uzupełniania braków danych (Imputacja)}
+
+Jak wspomniano w przeglądzie literatury, porównane zostaną metody proste i zaawansowane.
+
+\subsubsection{Metody proste (jednozmiennowe)}
+\begin{itemize}
+    \item \textbf{Średnia (\texttt{SimpleImputer(strategy='mean')}):} Zastąpienie brakujących wartości średnią arytmetyczną z danej kolumny.
+    \item \textbf{Mediana (\texttt{SimpleImputer(strategy='median')}):} Zastąpienie brakujących wartości medianą z danej kolumny (metoda bardziej odporna na wartości odstające).
+\end{itemize}
+
+\subsubsection{Metody zaawansowane (wielozmiennowe)}
+\begin{itemize}
+    \item \textbf{k-Najbliższych Sąsiadów (\texttt{KNNImputer}):} Uzupełnienie braków na podstawie średniej wartości od k-najbliższych sąsiadów (rekordów) w przestrzeni cech.
+    \item \textbf{Modele regresyjne (\texttt{IterativeImputer}):} Traktowanie każdej cechy z brakami jako zmiennej zależnej i budowanie modelu regresyjnego (np. lasu losowego lub regresji bayesowskiej) na podstawie pozostałych cech, aby przewidzieć brakujące wartości.
+\end{itemize}
+
+\subsection{Metody skalowania cech}
+
+Przetestowane zostaną dwie najpopularniejsze techniki skalowania.
+
+\begin{itemize}
+    \item \textbf{Standaryzacja (\texttt{StandardScaler}):} Przeskalowanie cech tak, aby miały średnią równą $0$ i odchylenie standardowe równe $1$. Jest to preferowana metoda dla algorytmów zakładających normalny rozkład danych.
+    \item \textbf{Normalizacja Min-Max (\texttt{MinMaxScaler}):} Przeskalowanie cech do zadanego przedziału, najczęściej $[0, 1]$. Metoda ta jest użyteczna, gdy algorytm (np. k-NN) wymaga cech w ściśle określonym zakresie.
+\end{itemize}
+
+\subsection{Modele klasyfikacyjne}
+
+Do oceny potoków przetwarzania wykorzystamy zestaw algorytmów klasyfikacyjnych o różnej charakterystyce i wrażliwości na wstępne przetwarzanie:
+
+\begin{itemize}
+    \item \textbf{k-Najbliższych Sąsiadów (k-NN):} Model oparty na odległości, bardzo wrażliwy na skalowanie cech.
+    \item \textbf{Maszyna Wektorów Nośnych (SVM):} Model również wrażliwy na skalowanie, szukający optymalnej hiperpłaszczyzny separującej klasy.
+    \item \textbf{Lasy Losowe (Random Forest):} Model zespołowy oparty na drzewach decyzyjnych, z natury odporny na różnice w skalach cech. Posłuży jako model bazowy do oceny wpływu samego skalowania.
+    \item \textbf{Regresja Logistyczna:} Model liniowy, który zazwyczaj zyskuje na standaryzacji cech.
+\end{itemize}
+
+\section{Eksperyment}
+\subsection{Preprocessing}
+W ramach preprocessingu dancyh wykonano serię kroków mających na celu przygotowanie i optymalizację danych do dalszej analizy oraz budowy modeli klasyfikacyjnych. Dane wczytano do obiektu DataFrame za pomocą \textit{pandas}. Umożliwiło to wykorzystanie API pandas w celu wstępnej interpretacji i przetwarania danych. Za pomocą df.describe() oraz df.isna() wykazano, że zbiór domyślnie nie zawiera żadnych brakujących danych, co defacto jest nietypowe w kontekście danych rolniczych czy przemysłowych, gdzie taka niekompletność to zjawisko powszechne.
+
+
+\begin{table}[h!]
+    \centering
+    \caption{Statystyki opisowe zbioru danych rolniczych obejmujące makroelementy gleby (N, P, K), parametry środowiskowe (temperatura, wilgotność, opad) oraz odczyn pH.}
+    \label{tab:statystyki}
+    \begin{tabular}{lrrrrrrr}
+        \toprule
+         & N & P & K & temperature & humidity & ph & rainfall \\
+        \midrule
+        count & 2200.00 & 2200.00 & 2200.00 & 2200.00 & 2200.00 & 2200.00 & 2200.00 \\
+        mean & 50.55 & 53.36 & 48.15 & 25.62 & 71.48 & 6.47 & 103.46 \\
+        std & 36.92 & 32.99 & 50.65 & 5.06 & 22.26 & 0.77 & 54.96 \\
+        min & 0.00 & 5.00 & 5.00 & 8.83 & 14.26 & 3.50 & 20.21 \\
+        25\% & 21.00 & 28.00 & 20.00 & 22.77 & 60.26 & 5.97 & 64.55 \\
+        50\% & 37.00 & 51.00 & 32.00 & 25.60 & 80.47 & 6.43 & 94.87 \\
+        75\% & 84.25 & 68.00 & 49.00 & 28.56 & 89.95 & 6.92 & 124.27 \\
+        max & 140.00 & 145.00 & 205.00 & 43.68 & 99.98 & 9.94 & 298.56 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+
+
+Jako, że jednym z wymogów projektu było wykorzystanie zbioru danych zawierającego conajmniej 10\% brakujących danych, zdecydowano się na kontrolowaną modyfikację datasetu wprowadzającej takie braki.
+W tym celu zaimplementowano funkcję \textit{add\_missing\_values}
+\begin{verbatim}
+def add_missing_values(df: pd.DataFrame, 
+    column_name: str, 
+    missing_frac=0.1, 
+    random_state=None):
+np.random.seed(random_state)
+
+if column_name not in df.columns:
+    raise ValueError(f"Column '{column_name}' 
+        not found in DataFrame. Available columns: {list(df.columns)}")
+
+df_copy = df.copy()
+indices = df_copy.sample(frac=missing_frac, random_state=random_state)
+    .index
+df_copy.loc[indices, column_name] = np.nan
+
+return df_copy
+\end{verbatim}
+
+Następnie wykorzystano ją do modyfikacji 3 kolumn: ph, temperature, humidity:
+\begin{verbatim}
+df = add_missing_values(df, 'ph', random_state=10)
+df = add_missing_values(df, 
+    'temperature', 
+    missing_frac=0.10, 
+    random_state=10)
+df = add_missing_values(df, 'humidity', missing_frac=0.17, random_state=10)
+\end{verbatim}
+W efekcie otrzymano zbiór danych z częściowo pustymi wierszami, co umozliwiło dalsze testowanie metod imputacji braków danych w warunkach zbliżonych do rzeczywistych,
+
+\begin{table}[h!]
+    \centering
+    \caption{Statystyki opisowe zbioru danych po wprowadzeniu kontrolowanych braków w kolumnach \textit{ph}, \textit{temperature} oraz \textit{humidity}.}
+    \label{tab:statystyki_missing}
+    \begin{tabular}{lrrrrrrr}
+        \toprule
+         & N & P & K & temperature & humidity & ph & rainfall \\
+        \midrule
+        count & 2200.00 & 2200.00 & 2200.00 & 1980.00 & 1826.00 & 1980.00 & 2200.00 \\
+        mean & 50.55 & 53.36 & 48.15 & 25.61 & 71.53 & 6.47 & 103.46 \\
+        std & 36.92 & 32.99 & 50.65 & 5.08 & 22.38 & 0.78 & 54.96 \\
+        min & 0.00 & 5.00 & 5.00 & 9.47 & 14.32 & 3.51 & 20.21 \\
+        25\% & 21.00 & 28.00 & 20.00 & 22.78 & 60.14 & 5.97 & 64.55 \\
+        50\% & 37.00 & 51.00 & 32.00 & 25.61 & 80.68 & 6.43 & 94.87 \\
+        75\% & 84.25 & 68.00 & 49.00 & 28.57 & 90.02 & 6.92 & 124.27 \\
+        max & 140.00 & 145.00 & 205.00 & 43.68 & 99.98 & 9.94 & 298.56 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Po wprowadzeniu niekompletności danych konieczne było przeprowadzenie procesu imputacji co jest jednym z wymagań projektu. W przypadku cech \textit{ph} oraz \textit{humidity} zastosowano klasyczne imputacje z wykorzystaniem metod agregacyjnych \textit{pandas}, takich jak średnia i mediana, co pozwoliło w prosty sposób uzupełnić brakujące wartości przy minimalnym zaburzeniu rozkładu zmiennych. W celu dokładniejszego odtworzenia wartości temperatury wykorzystano bardziej zaawansowaną metodę predykcyjną opartą na regresji. Zastosowano model \textit{RandomForestRegressor}, który trenowano na pełnych obserwacjach, a następnie użyto do przewidywania brakujących wartości temperatury. Model osiągnął błąd średniokwadratowy na poziomie około 2.69~$^\circ$C, co potwierdziło jego zdolność do wiarygodnej rekonstrukcji brakujących obserwacji. Uzyskane predykcje zastąpiono brakującymi wartościami przy użyciu masek \textit{pandas}, co pozwoliło zachować spójność struktury danych oraz ograniczyć artefakty wynikające z niekompletności zbioru.
+
+
+W celu wzbogacenia reprezentacji danych oraz uchwycenia jakichś dodatkowych zależności istotnych z punktu widzenia wzrostu roślin przeprowadzono proces ekstrakcji cech. W pierwszej kolejności skonstruowano wskaźniki oparte na stosunkach makroelementów, takie jak N/P czy N/K. Proporcje te są kluczowe, ponieważ rośliny wymagają określonego zbilansowania składników odżywczych - na przykład nadmierna ilość azotu w stosunku do fosforu sprzyja szybkiemu rozwojowi liści kosztem owocowania.
+\begin{verbatim}
+df['N_P_ratio'] = df['N'] / (df['P'] + 0.00001)
+\end{verbatim}
+
+
+Następnie utworzono indeksy łączące warunki środowiskowe, m.in. wskaźnik stosunku temperatury do wilgotności, dla przykładu wysokie temperatury oraz wysoka wilgotność mogą wskazywać na klimat równikowy. Parametr ten może mieć istotny wpływ na ryzyko występowania chorób roślin, zwłaszcza grzybowych. Dodatkowo skonstruowano syntetyczne wskaźniki żyzności gleby, bazujące na sumarycznym poziomie głównych makroelementów. Zmienna taka może być szczególnie użyteczna dla upraw wymagających ogólnie zasobnego podłoża, niezależnie od dokładnych proporcji poszczególnych pierwiastków.
+\begin{verbatim}
+df['temp_humidity_index'] = df['temperature'] * df['humidity'] / 100
+df['total_nutrients'] = df['N'] + df['P'] + df['K']
+\end{verbatim}
+
+Kolejnym etapem preprocessingu było przeskalowanie zmiennych numerycznych w celu ujednolicenia ich zakresów. 
+W tym celu zastosowano metodę \textit{StandardScaler} z biblioteki \textit{scikit-learn}, która standaryzuje każdą cechę według zależności:
+\[
+x' = \frac{x - \mu}{\sigma},
+\]
+gdzie $\mu$ oznacza średnią, a $\sigma$ odchylenie standardowe danej kolumny. 
+Operacji skalowania poddano wszystkie cechy numeryczne oprócz etykiety klasowej.
+\begin{verbatim}
+from sklearn.preprocessing import StandardScaler
+
+cols_to_scale = df.columns.drop('label')
+scaler = StandardScaler()
+
+df[cols_to_scale] = scaler.fit_transform(df[cols_to_scale])
+\end{verbatim}
+\subsection{Eksploracyjna analiza danych}
+Eksploracyjna analiza danych to kluczowy etap poznawania zbioru danych. Jej celem jest zrozumienie struktury, identyfikacja zależności między cechami, wykrycie wartości odstająctch oraz ocena jakości danych. Modele uczenia maszynowego są wrażliwe na takie cechy co może negatywnie wpłynąć na końcową dokładność i jakość modelu.
+\begin{figure}[H]
+\begin{center}
+   \includegraphics[width=1\linewidth]{figures/boxplots.png}
+\end{center}
+   \caption{Wykresy pudełkowe dla cech numerycznych.}
+\label{fig:other-figure}
+\end{figure}
+Wszystkie cechy zawierają wartości odstające co jest zgodne z charakterystyką danych klimatycznych i glebowych. Rozkłady te uzasadniają użycie \textit{StandardScalera} w celu skalowania cech, co minimalizuje dominację cech o dużej skali.
+
+
+\begin{figure}[H]
+\begin{center}
+   \includegraphics[width=1\linewidth]{figures/pairplots.png}
+\end{center}
+   \caption{Pairplot przedstawiający zależności między cechami oraz ich rozkłady jednowymiarowe dla Crop Recommendation.}
+\label{fig:other-figure}
+\end{figure}
+Pairplot przedstawia rozkłady poszczególnych cech oraz zalożności między zmiennymi po ich standaryzacji. Większość par cech nie wykazuje silnych zależności liniowych. Choć same cechy nie są silnie skorelowane, grupa roślin tworzy zbiory punktów, które modele klasyfikacyjne mogą wykorzystywać do rozróżniania klas.
+
+
+\begin{figure}[H]
+\begin{center}
+   \includegraphics[width=1\linewidth]{figures/macierz_pearsona.png}
+\end{center}
+   \caption{Macierz korelacji Parsona.}
+\label{fig:other-figure}
+\end{figure}
+Z definicji macierz korelacji Pearsona przedstawia siłę i kierunek zależności liniowych pomiędzy wszystkimi parami zmiennych numerycznych w zbiorze danych. Wartości w macierzy mieszczą się w przedziale od -1 do 1 gdzie 1 oznacza pełną dodatnią korelację liniową, -1 pełną ujemną, natomiast 0 oznacza brak liniowej zależności.Najbardziej widoczną zależnością jest wysoka dodatnia korelacja pomiędzy fosforem (P) a potasem (K). Oznacza to, że działki o wyższym poziomie fosforu mają zwykle także wyższy poziom potasu.
+Każda zmienna opisuje inną właściwość środowiska i nie wynika bezpośrednio z pozostałych parametrów. To oznacza, że cechy nie są redundantne i każda wnosi odrębną informację.
+
+
+\begin{figure}[H]
+\begin{center}
+   \includegraphics[width=1\linewidth]{figures/macierz_spearmana.png}
+\end{center}
+   \caption{Macierz korelacji Spearmana.}
+\label{fig:other-figure}
+\end{figure}
+Macierz korelacji Spearmana przedstawia siłę i kierunek zależności monotonicznych (a niekoniecznie liniowych) między zmiennymi. Z tej macierzy wynika, że brak jest silnych zależności między cechami. Najsilniejszą zależnością posiada potas oraz wilgoć. Może to wynikać z faktu, że niektóre rośliny lubiące wilgotne środowisko wymagają jednocześnie bardziej zasobnej gleby. \\[1em]
+
+
+% --- TEKST ANALIZY 1 (Imputacja) ---
+\noindent
+Wpływ metody imputacji na rozkład danych (widoczny na Rysunku \ref{fig:imputacja_porownanie}):
+\begin{itemize}
+    \item Metody proste (średnia, mediana) prowadzą do sztucznej redukcji wariancji w danych. Zastąpienie wszystkich braków jedną, stałą wartością powoduje nienaturalne "zwężenie" rozkładu cechy (co było widoczne na wykresach pudełkowych), potencjalnie wprowadzając model w błąd co do rzeczywistej zmienności danych.
+    \item Metody predykcyjne (KNN, Random Forest) są znacznie bardziej adekwatne. Poprzez estymację brakujących wartości na podstawie innych cech, zachowują one naturalną dyspersję i strukturę danych, co czyni zbiór bardziej wiarygodnym i reprezentatywnym.
+\end{itemize}
+
+% --- Rysunek 1: Porównanie Metod Imputacji ---
+% Plik 'Untitled.png' to ten z komórki 7 (porównanie imputacji)
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=1\linewidth]{Untitled.png}
+    \caption{Porównanie dystrybucji danych dla cech \texttt{temperature}, \texttt{humidity} oraz \texttt{ph} po zastosowaniu czterech różnych metod imputacji (Mean, Median, KNN, Mixed-RF).}
+    \label{fig:imputacja_porownanie}
+\end{figure}
+
+
+% --- TEKST ANALIZY 2 (Skalowanie) ---
+\noindent
+Analiza wpływu skalowania danych (widoczna na Rysunku \ref{fig:skalowanie_porownanie}):
+\begin{itemize}
+    \item Dane surowe (przed skalowaniem) charakteryzowały się znaczną dysproporcją w rzędach wielkości (np. cecha \texttt{rainfall} vs \texttt{ph}). Stosowanie algorytmów wrażliwych na dystans (jak KNN, SVM, czy sieci neuronowe) na takich danych prowadziłoby do dominacji cech o większych wartościach liczbowych, niezależnie od ich rzeczywistego znaczenia.
+    \item Obie metody skalowania skutecznie rozwiązały ten problem. Normalizacja Min-Max ujednoliciła zakres wszystkich cech do [0, 1], co jest szczególnie pożądane w sieciach neuronowych. Standaryzacja Z-score scentralizowała rozkład każdej cechy wokół zera ($\mu=0$) przy jednostkowej wariancji ($\sigma=1$), co jest uważane za standardowe i najbardziej uniwersalne podejście dla większości algorytmów ML.
+\end{itemize}
+
+% --- Rysunek 2: Porównanie Metod Skalowania ---
+% Plik 'Untitledzmum.png' to ten z komórki 8 (porównanie skalowania)
+% --- Rysunek 2: Porównanie Metod Skalowania ---
+\begin{figure}[H]  % <--- ZMIANA: [H] zamiast [h!]
+    \centering
+    \includegraphics[width=1\linewidth]{Untitledzmum.png}
+    \caption{Porównanie wpływu metod skalowania (Original vs. MinMax vs. Standard) na rozkład poszczególnych cech. Analiza na przykładzie zbioru z imputacją metodą mieszaną (Mixed-RF).}
+    \label{fig:skalowanie_porownanie}
+\end{figure}
+
+
+\subsection{Trening modelu}
+\subsubsection{Dobór algorytmów klasyfikacyjnych}
+W celu zapewnienia różnorodności perspektyw decyzyjnych, do eksperymentu wybrano zestaw modeli reprezentujących różne rodziny algorytmów uczenia maszynowego. Trenowano je na zbiorze danych poddanym wcześniejszemu "sabotażowi" (zaszumienie i braki danych), aby wyłonić rozwiązanie najbardziej odporne na trudne warunki. Wykorzystano:
+Drzewa Decyzyjne (Decision Tree): Jako model bazowy (baseline), cechujący się wysoką interpretowalnością, ale podatnością na przeuczenie (overfitting).
+
+\begin{itemize}
+    \item Algorytmy oparte na sąsiedztwie (KNN): Aby sprawdzić, jak degradacja danych wpływa na modele geometryczne, wrażliwe na odległości między punktami.
+    \item Metody Zespołowe: Random Forest – wybrano go ze względu na naturalną zdolność do redukcji wariancji i odporność na szum poprzez uśrednianie wyników wielu drzew. 
+    \item Gradient Boosting: Wykorzystano biblioteki XGBoost oraz LightGBM. Są to algorytmy sekwencyjne, które korygują błędy poprzedników. LightGBM wybrano dodatkowo ze względu na jego natywną obsługę braków danych (NaN).
+    \item Modele Zespołowe Wyższego Rzędu:
+    \begin{itemize}
+        \item Voting Classifier (Soft): Głosowanie większościowe oparte na prawdopodobieństwach zwróconych przez Random Forest, XGBoost i KNN.
+        \item Stacking Classifier: Architektura dwupoziomowa, gdzie meta-klasyfikator (Regresja Logistyczna) uczy się, jak najlepiej połączyć predykcje modeli bazowych (RF i XGBoost).
+    \end{itemize}
+\end{itemize}
+
+\begin{verbatim}
+models = {
+    #modele scikit-learn
+    'Decision Tree': DecisionTreeClassifier(random_state=42),
+    'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42),
+    'KNN': KNeighborsClassifier(n_neighbors=5),
+
+    #mdele zewn
+    'XGBoost': XGBClassifier(eval_metric='mlogloss', use_label_encoder=False),
+    'LightGBM': LGBMClassifier(verbose=-1),
+
+    #modele zespołowe
+    'Voting (Soft)': VotingClassifier(
+        estimators=[
+            ('dt', DecisionTreeClassifier()),
+            ('rf', RandomForestClassifier()),
+            ('knn', KNeighborsClassifier())
+        ], voting='soft'
+    ),
+    'Stacking': StackingClassifier(
+        estimators=[
+            ('rf', RandomForestClassifier(n_estimators=50)),
+            ('knn', KNeighborsClassifier())
+        ], final_estimator=LogisticRegression()
+    )
+}
+\end{verbatim}
+
+\subsubsection{Procedura Treningowa}
+Pierwszy eskperyment przeprowadzono na danych po pierwszym preprocessingu. Ze względu na charakterystykę zbioru danych (nierealistycznie idealne dane), eksperyment musiał zostać powtórzony oraz zaimplementowano funkcję wprowadzającą celowe uszkodzenia do zbioru treningowego.
+
+\begin{itemize}
+    \item Szum pomiarowy: Do kolumn N, P, K dodano losowy szum z rozkładu normalnego (\μ=0,\σ=8), symulując niedokładność tanich czujników glebowych.
+    \item Awarie czujników: Losowo usunięto wartości w kluczowych kolumnach środowiskowych: ph (30\% braków), humidity (25\% braków) oraz temperature (20\% braków).
+\end{itemize}
+
+
+\begin{verbatim}
+def run_heavy_sabotage(dataframe, random_state=42):
+    np.random.seed(random_state)
+    df_broken = dataframe.copy()
+    
+    #1.Szum pomiarowy
+    for col in ['N', 'P', 'K']:
+        noise = np.random.normal(0, 8, size=len(df_broken))
+        df_broken[col] = (df_broken[col] + noise).clip(lower=0)
+    
+    #2.Losowe usuwanie danych
+    #pH:30%, wilgotnosc:25%, temperatura:20%
+    for col, frac in [('ph', 0.30), ('humidity', 0.25), ('temperature', 0.20)]:
+        n_missing = int(len(df_broken) * frac)
+        idx = np.random.choice(df_broken.index, n_missing, replace=False)
+        df_broken.loc[idx, col] = np.nan
+
+    return df_broken
+\end{verbatim}
+
+
+Proces uczenia podzielono na dwa etapy weryfikacji:
+
+\begin{enumerate}
+    \item Ranking Wstępny (Turniej Modeli): Zbiór danych podzielono ręcznie na część treningową (80\%) i testową (20\%) z wykorzystaniem losowego tasowania indeksów (numpy.random.shuffle). Wszystkie modele zostały wytrenowane na tym samym podziale, a ich skuteczność (Accuracy) zmierzona na zbiorze testowym pozwoliła wyłonić model zwycięski ("Winner").
+    \item Weryfikacja Krzyżowa (Cross-Validation): Dla zwycięskiego modelu przeprowadzono rygorystyczną, 5-krotną walidację krzyżową (K-Fold Cross-Validation). Procedura ta została zaimplementowana ręcznie (iteracyjne dzielenie zbioru na 5 rozłącznych części), zgodnie z założeniami projektu, aby wyeliminować wpływ losowego doboru zbioru testowego na końcową ocenę i uzyskać wiarygodny estymator błędu generalizacji.
+\end{enumerate}
+
+
+
+\subsection{Wyniki Eksperymentów}
+Przeprowadzono porównanie skuteczności modeli w dwóch scenariuszach.
+
+\subsubsection{Scenariusz "Idealny"}
+Na oryginalnym zbiorze danych większość modeli (Random Forest, XGBoost, LightGBM) osiągnęła skuteczność 99.77\%. Wynik ten, choć imponujący, sugerował trywialność problemu klasyfikacji na czystych danych syntetycznych.
+
+\begin{enumerate}
+    \item Random Forest, LightGBM i XGBoost ~99.8\% - w czystych danych, gdzie nie ma ryzyka przeuczenia na szumie, agresywne dopasowanie Lasu Losowego (low bias) sprawdza się najlepiej. Las tworzy "mapę idealną", podczas gdy Boosting wciąż ostrożnie szuka błędów, których tu po prostu nie ma.
+    \item Decision Tree ~99.3\% - drzewa decyzyjne działają na zasadzie prostych cięć (np. "jeśli X > 5 to Tak"). W danych idealnych te granice są ostre i wyraźne. Algorytm nie myli się, bo nie ma mylących punktów
+    \item Voting ~99.3\% i Stacking ~0.99.1\% - uśredniają wyniki kilku modeli
+    \item KNN: ~97.3\% - model oparty na geometrii i odległości, czyli wrażliwy na niepełne dane
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{ideal.png}
+    \caption{Enter Caption}
+    \label{fig:placeholder}
+\end{figure}
+
+
+
+\subsubsection{Scenariusz "Rzeczywisty" (po uszkodzeniu danych)}
+Po wprowadzeniu szumu i braków danych zaobserwowano spadek wydajności wszystkich modeli. Ranking modeli w trudnych warunkach przedstawia się następująco (wyniki na zbiorze testowym):
+\begin{enumerate}
+    \item XGBoost 95.91\% i LightGBM 95.68\% - najwyższa odporność na szum
+    \item Random Forest 94.32\% - odporność na wariancję przez uśrednianie danych
+    \item Stacking 93.86\% i Voting 92.27\%
+    \item Decision Tree 89.55\% i KNN 86.59\% - drzewo często uczy się szumu (overfitting), zamiast prawdziwych reguł, KNN traktuje szum na równi z sygnałem
+\end{enumerate}
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.95\linewidth]{Untitled-1.png}
+    \caption{Enter Caption}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{xgb.png}
+    \caption{Enter Caption}
+    \label{fig:placeholder}
+\end{figure}
+
+
+\subsubsection{Weryfikacja: Ręczna Walidacja Krzyżowa}
+Aby potwierdzić, że wynik zwycięskiego modelu nie jest dziełem przypadku, przeprowadzono 5-krotną walidację krzyżową (K-Fold). \\
+Odchylenie wyników między foldami było niewielkie, co świadczy o stabilności modelu mimo "zepsutych" danych.\\
+W czasie testowania zauważono znaczne pogorszenie modelu RandomForest, tj. nie był już on najskuteczniejszym modelem w porównaniu do wyników przy sytuacji idealnej. Podział danych jest losowy, więc przy ponownym podziale kodu na test i trening, dokładność może się róznić, ale widać tendencję w zaradności modeli. Najgorszej radzi sobie KNN i Decision Tree. Natomiast w czołówce znajdują się XGBoost oraz LightGBM.
+
+
+\begin{verbatim}
+k = 5
+cv_scores = []
+fold_size = len(X) // k
+ind = np.arange(len(X))
+np.random.shuffle(ind)
+
+print(f"\nRęczna Walidacja Krzyżowa (5-fold) dla {best_model_name} ---")
+for i in range(k):
+    val_indices = ind[i*fold_size : (i+1)*fold_size]
+    train_indices = np.concatenate([ind[:i*fold_size], ind[(i+1)*fold_size:]])
+
+    winner_model.fit(X[train_indices], y_enc[train_indices])
+    preds = winner_model.predict(X[val_indices])
+    score = np.mean(preds == y_enc[val_indices])
+    cv_scores.append(score)
+    print(f"Fold {i+1}: {score:.4f}")
+
+final_cv_score = np.mean(cv_scores)
+\end{verbatim}
+
+
+
+\section{Podsumowanie}
+
+Niniejszy projekt koncentrował się na problemie rekomendacji upraw w kontekście rolnictwa precyzyjnego, które stanowi odpowiedź na rosnące globalne zapotrzebowanie na żywność. Głównym celem było systematyczne zbadanie, jak różne strategie wstępnego przetwarzania danych wpływają na jakość zbioru "Crop Recommendation Dataset".
+
+W pierwszej kolejności dokonano przeglądu literatury, identyfikując kluczowe wyzwania w przetwarzaniu danych rolniczych, takie jak braki danych i potrzeba skalowania cech. Ponieważ oryginalny zbiór danych był kompletny, problem braków wartości został zasymulowany poprzez kontrolowane usunięcie 10\% danych z kolumn ph, temperature i humidity .
+
+Kluczowym elementem projektu był eksperyment "4x2", polegający na wygenerowaniu ośmiu wariantów zbioru danych. Stworzono cztery zbiory różniące się metodą imputacji braków: dwie proste (średnia, mediana) oraz dwie zaawansowane (KNNImputer oraz metoda mieszana wykorzystująca Random Forest). Następnie każdy z tych zbiorów został poddany dwóm metodom skalowania zaimplementowanym ręcznie: Normalizacji Min-Max oraz Standaryzacji.
+
+Proste metody imputacji (średnia, mediana) prowadzą do sztucznej redukcji wariancji, co nienaturalnie "zwęża" rozkład danych.
+Metody zaawansowane (KNN, RF) znacznie lepiej zachowują naturalną dyspersję danych, co czyni zbiór bardziej wiarygodnym.
+Skalowanie cech jest niezbędne do zniwelowania dysproporcji w rzędach wielkości (np. rainfall vs ph), co jest kluczowe dla algorytmów wrażliwych na dystans.
+\bibliographystyle{plain}
+\bibliography{bibliography.bib} 
+
+\end{document}
