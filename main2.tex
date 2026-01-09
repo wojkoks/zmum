@@ -547,7 +547,11 @@ final_cv_score = np.mean(cv_scores)
 
 
 \subsection{Cz.3: Selekcja cech i optymalizacja modelu}
-W kolejnej części pracy wykonano dodatkową optymalizację, której celem było (1) sprawdzenie wpływu doboru cech na jakość klasyfikacji oraz (2) poprawa jakości predykcji poprzez strojenie hiperparametrów. Dla spójności porównań przyjęto metrykę $F_1$ (macro) raportowaną w walidacji krzyżowej oraz na zbiorze testowym.
+W kolejnej części pracy wykonano dodatkową optymalizację, której celem było (1) sprawdzenie wpływu doboru cech na jakość klasyfikacji oraz (2) poprawa jakości predykcji poprzez strojenie hiperparametrów.
+
+Zgodnie z wymaganiami projektu optymalizacji poddano wyłącznie najlepszy model z turnieju, tj. \textbf{LightGBM}. Porównania wykonywano w sposób spójny: metryką główną było $F_1$ (macro), raportowane zarówno w \textbf{5-krotnej walidacji krzyżowej} (StratifiedKFold), jak i na wydzielonym zbiorze testowym.
+
+W Cz.3 analizowano model uczony na zbiorze po preprocessingu oraz inżynierii cech. W finalnym wariancie wykorzystywano łącznie \textbf{9 cech}: 7 oryginalnych (N, P, K, temperature, humidity, ph, rainfall) oraz 2 cechy inżynieryjne (\texttt{N\_P\_ratio}, \texttt{total\_nutrients}).
 
 \subsubsection{Selekcja cech}
 W pierwszym kroku przeanalizowano zależności pomiędzy cechami (macierz korelacji), a następnie porównano dwa podejścia do selekcji cech:
@@ -555,6 +559,8 @@ W pierwszym kroku przeanalizowano zależności pomiędzy cechami (macierz korela
     \item \textbf{SelectKBest} (mutual information) — wybór $k$ cech o najwyższej zależności z etykietą.
     \item \textbf{Permutation Importance} — ocena spadku jakości po losowej permutacji pojedynczej cechy.
 \end{itemize}
+
+Macierz korelacji (Rys. \ref{fig:opt_corr_heatmap}) służyła jako kontrola redundancji. Zauważalne są zależności pomiędzy niektórymi parami cech (np. P i K), a także powiązania między cechami inżynieryjnymi i ich składowymi. Nie zaobserwowano jednak sytuacji, w której jedna cecha w oczywisty sposób w pełni zastępowałaby inną (brak bardzo silnych korelacji w większości par), co sugeruje, że agresywne odrzucanie zmiennych może prowadzić do utraty informacji.
 
 \begin{figure}[H]
     \centering
@@ -566,16 +572,20 @@ W pierwszym kroku przeanalizowano zależności pomiędzy cechami (macierz korela
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\linewidth]{images/optimization/feature_selection_comparison.png}
-    \caption{Porównanie jakości ($F_1$ macro) dla metod selekcji cech (Cz.3).}
+    \caption{Porównanie jakości ($F_1$ macro) dla metod selekcji cech (Cz.3) w walidacji krzyżowej oraz na zbiorze testowym.}
     \label{fig:opt_feature_selection_comparison}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\linewidth]{images/optimization/feature_selection_table.png}
-    \caption{Tabela porównawcza metod selekcji cech (Cz.3).}
+    \caption{Tabela porównawcza metod selekcji cech (Cz.3) wraz z liczbą wybranych cech.}
     \label{fig:opt_feature_selection_table}
 \end{figure}
+
+Wyniki selekcji cech (Rys. \ref{fig:opt_feature_selection_comparison} oraz \ref{fig:opt_feature_selection_table}) pokazują, że najlepszy rezultat uzyskano dla konfiguracji \textbf{bez redukcji cech}. Model bazowy (wszystkie cechy) osiągnął $F_1$\textsubscript{CV}$\approx 0.9531$ oraz $F_1$\textsubscript{test}$\approx 0.9546$. Metoda SelectKBest wskazała jako optymalne $k=9$ (czyli pełen zestaw cech), co w praktyce oznacza brak realnej selekcji i taki sam wynik jak baseline. Z kolei redukcja do 4 cech wybranych przez Permutation Importance spowodowała silny spadek jakości ($F_1$\textsubscript{CV}$\approx 0.8801$, $F_1$\textsubscript{test}$\approx 0.8783$).
+
+Wniosek: w tym zadaniu informacja jest rozproszona pomiędzy cechy, a LightGBM korzysta z \textbf{interakcji} pomiędzy nimi; redukcja wymiaru (zwłaszcza do bardzo małej liczby cech) pogarsza jakość. Do dalszego strojenia hiperparametrów przyjęto zatem \textbf{pełen zestaw 9 cech}.
 
 \subsubsection{Optymalizacja hiperparametrów (Grid Search, Bayesian, AutoML, GA)}
 Po wyłonieniu najlepszego modelu bazowego przeprowadzono strojenie hiperparametrów wyłącznie dla zwycięzcy (w celu ograniczenia kosztu obliczeń). Porównano następujące podejścia:
@@ -586,19 +596,32 @@ Po wyłonieniu najlepszego modelu bazowego przeprowadzono strojenie hiperparamet
     \item \textbf{DEAP} — algorytm genetyczny strojący hiperparametry.
 \end{itemize}
 
+Wszystkie metody (poza TPOT, który sam konstruuje pipeline) były porównywane w tej samej konfiguracji walidacji (5-fold StratifiedKFold) i z tą samą metryką celu ($F_1$ macro). GridSearchCV testował skończoną siatkę parametrów LightGBM, Optuna realizowała przeszukiwanie bayesowskie w przestrzeni hiperparametrów (25 prób), a DEAP stosował prosty algorytm ewolucyjny (populacja 15, 8 generacji). TPOT został użyty jako reprezentant AutoML w celu spełnienia wymagania projektowego; w tym przypadku kluczowe jest rozróżnienie pomiędzy \textit{wynikiem na zbiorze treningowym} a wynikiem z walidacji krzyżowej.
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\linewidth]{images/optimization/hyperparam_methods_comparison.png}
-    \caption{Porównanie metod optymalizacji hiperparametrów: wynik walidacji krzyżowej vs wynik na teście (Cz.3).}
+    \caption{Porównanie metod optymalizacji hiperparametrów: $F_1$ macro w walidacji krzyżowej vs $F_1$ macro na teście (Cz.3).}
     \label{fig:opt_hyperparam_methods_comparison}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\linewidth]{images/optimization/hyperparam_methods_table.png}
-    \caption{Tabela porównawcza metod optymalizacji hiperparametrów (Cz.3).}
+    \caption{Tabela porównawcza metod optymalizacji hiperparametrów (Cz.3) wraz z wartościami $F_1$ (CV/test) i krótkim opisem kosztu obliczeń.}
     \label{fig:opt_hyperparam_methods_table}
 \end{figure}
+
+Na podstawie zestawienia (Rys. \ref{fig:opt_hyperparam_methods_comparison} oraz \ref{fig:opt_hyperparam_methods_table}) widać, że strojenie hiperparametrów poprawia jakość w porównaniu do konfiguracji bazowej. Wyniki dla LightGBM przedstawiają się następująco:
+\begin{itemize}
+    \item \textbf{Baseline}: $F_1$\textsubscript{CV}$\approx 0.9531$, $F_1$\textsubscript{test}$\approx 0.9546$.
+    \item \textbf{GridSearchCV}: $F_1$\textsubscript{CV}$\approx 0.9592$, $F_1$\textsubscript{test}$\approx 0.9589$.
+    \item \textbf{Optuna}: $F_1$\textsubscript{CV}$\approx 0.9615$, $F_1$\textsubscript{test}$\approx 0.9632$.
+    \item \textbf{DEAP (genetyczny)}: $F_1$\textsubscript{CV}$\approx 0.9641$, $F_1$\textsubscript{test}$\approx 0.9628$.
+    \item \textbf{TPOT (AutoML)}: wynik na teście $F_1$\textsubscript{test}$\approx 0.9465$; wartość raportowana jako „CV” w implementacji pochodziła z \texttt{fitted\_pipeline\_.score} (ocena na zbiorze treningowym) i nie jest porównywalna z $F_1$ z walidacji krzyżowej.
+\end{itemize}
+
+W praktyce o wyborze metody decyduje nie tylko maksymalizacja $F_1$\textsubscript{CV}, lecz przede wszystkim generalizacja na dane testowe. Najlepszy wynik testowy uzyskano dla \textbf{Optuna} ($F_1$\textsubscript{test}$\approx 0.9632$). Metoda DEAP osiągnęła minimalnie wyższy wynik CV, ale nie przełożyło się to na lepszy wynik testowy, co można interpretować jako efekt losowości/ograniczonego budżetu ewaluacji lub lekkiego przeoptymalizowania pod CV.
 
 \subsubsection{Zysk jakości: przed vs po optymalizacji}
 Końcowym krokiem było zestawienie zmian jakości względem konfiguracji bazowej.
@@ -613,25 +636,28 @@ Końcowym krokiem było zestawienie zmian jakości względem konfiguracji bazowe
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.85\linewidth]{images/optimization/before_after.png}
-    \caption{Wizualizacja porównania jakości przed i po optymalizacji (Cz.3).}
+    \caption{Wizualizacja porównania jakości przed i po optymalizacji (Cz.3) dla $F_1$ macro.}
     \label{fig:opt_before_after}
 \end{figure}
+
+Tabela zysków (Rys. \ref{fig:opt_gains_table}) oraz wykres przed-vs-po (Rys. \ref{fig:opt_before_after}) pokazują, że najlepsza konfiguracja poprawiła wyniki o około $\Delta F_1$\textsubscript{CV}$\approx +0.0085$ (ok. $+0.89\%$) oraz $\Delta F_1$\textsubscript{test}$\approx +0.0086$ (ok. $+0.91\%$) względem baseline. Jest to umiarkowany, ale spójny zysk zarówno na CV, jak i na teście, co sugeruje realną poprawę bez wyraźnych oznak przeuczenia.
 
 
 
 \section{Podsumowanie}
 
-Niniejszy projekt koncentrował się na problemie rekomendacji upraw w kontekście rolnictwa precyzyjnego, które stanowi odpowiedź na rosnące globalne zapotrzebowanie na żywność. Głównym celem było systematyczne zbadanie, jak różne strategie wstępnego przetwarzania danych wpływają na jakość zbioru "Crop Recommendation Dataset".
+Projekt dotyczył budowy i oceny systemu rekomendacji upraw na bazie \textit{Crop Recommendation Dataset}. Ponieważ oryginalny zbiór jest kompletny, brakujące dane zasymulowano w sposób kontrolowany (m.in. w kolumnach \texttt{ph}, \texttt{temperature}, \texttt{humidity}), a następnie porównano strategie imputacji oraz skalowania. Celem była ocena wpływu decyzji preprocessingowych na stabilność i jakość modeli w warunkach bliższych rzeczywistym (z zaszumieniem i brakami danych).
 
-W pierwszej kolejności dokonano przeglądu literatury, identyfikując kluczowe wyzwania w przetwarzaniu danych rolniczych, takie jak braki danych i potrzeba skalowania cech. Ponieważ oryginalny zbiór danych był kompletny, problem braków wartości został zasymulowany poprzez kontrolowane usunięcie 10\% danych z kolumn ph, temperature i humidity .
+Najważniejsze obserwacje z eksperymentu można podsumować następująco:
+\begin{itemize}
+    \item \textbf{Imputacja:} proste metody (średnia, mediana) zaniżają wariancję i mogą zniekształcać rozkłady, natomiast podejścia predykcyjne (KNN, Random Forest) lepiej zachowują naturalną dyspersję i relacje pomiędzy cechami.
+    \item \textbf{Skalowanie:} standaryzacja i normalizacja skutecznie niwelują różnice skali (np. \texttt{rainfall} vs \texttt{ph}), co jest krytyczne dla modeli opartych o dystans (KNN, SVM) i poprawia stabilność procesu uczenia.
+    \item \textbf{Turniej modeli:} po wprowadzeniu "sabotażu" jakości wszystkie modele spadły, jednak metody boostingowe pozostały najbardziej odporne. W praktyce najlepszy wynik uzyskał \textbf{LightGBM}, który został wybrany do dalszej optymalizacji.
+    \item \textbf{Selekcja cech (Cz.3):} porównanie SelectKBest (mutual information) i Permutation Importance wykazało, że redukcja do małej liczby cech pogarsza wyniki. Najlepszy rezultat uzyskano dla \textbf{pełnego zestawu 9 cech} (7 bazowych + \texttt{N\_P\_ratio} i \texttt{total\_nutrients}).
+    \item \textbf{Tuning hiperparametrów (Cz.3):} porównanie GridSearchCV, Optuna, DEAP oraz AutoML (TPOT) pokazało, że największy zysk jakości uzyskano dzięki \textbf{Optuna}. Względem baseline odnotowano poprawę około $\Delta F_1$\textsubscript{CV}$\approx +0.0085$ oraz $\Delta F_1$\textsubscript{test}$\approx +0.0086$, co oznacza spójny wzrost jakości bez widocznych oznak przeuczenia.
+\end{itemize}
 
-Kluczowym elementem projektu był eksperyment "4x2", polegający na wygenerowaniu ośmiu wariantów zbioru danych. Stworzono cztery zbiory różniące się metodą imputacji braków: dwie proste (średnia, mediana) oraz dwie zaawansowane (KNNImputer oraz metoda mieszana wykorzystująca Random Forest). Następnie każdy z tych zbiorów został poddany dwóm metodom skalowania zaimplementowanym ręcznie: Normalizacji Min-Max oraz Standaryzacji.
-
-Dodatkowo, w Cz.3 przeprowadzono selekcję cech oraz optymalizację hiperparametrów najlepszego modelu. Porównano metody selekcji cech (Rys. \ref{fig:opt_feature_selection_comparison}, tabela: Rys. \ref{fig:opt_feature_selection_table}) oraz metody strojenia hiperparametrów (Rys. \ref{fig:opt_hyperparam_methods_comparison}, tabela: Rys. \ref{fig:opt_hyperparam_methods_table}). Wpływ optymalizacji na jakość podsumowano w postaci zestawienia zysków (Rys. \ref{fig:opt_gains_table}) oraz wykresu przed-vs-po (Rys. \ref{fig:opt_before_after}).
-
-Proste metody imputacji (średnia, mediana) prowadzą do sztucznej redukcji wariancji, co nienaturalnie "zwęża" rozkład danych.
-Metody zaawansowane (KNN, RF) znacznie lepiej zachowują naturalną dyspersję danych, co czyni zbiór bardziej wiarygodnym.
-Skalowanie cech jest niezbędne do zniwelowania dysproporcji w rzędach wielkości (np. rainfall vs ph), co jest kluczowe dla algorytmów wrażliwych na dystans.
+Ostatecznie projekt pokazał, że w zadaniu rekomendacji upraw jakość danych wejściowych (imputacja i skalowanie) ma kluczowe znaczenie, a w warunkach zaszumienia najlepszą odporność i potencjał optymalizacji wykazuje LightGBM. Dodatkowe strojenie hiperparametrów przyniosło mierzalne korzyści, natomiast selekcja cech nie poprawiła wyników i w skrajnym wariancie znacząco je pogorszyła.
 \bibliographystyle{plain}
 \bibliography{bibliography.bib} 
 
