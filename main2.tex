@@ -475,19 +475,19 @@ Proces uczenia podzielono na dwa etapy weryfikacji:
 Przeprowadzono porównanie skuteczności modeli w dwóch scenariuszach.
 
 \subsubsection{Scenariusz "Idealny"}
-Na oryginalnym zbiorze danych większość modeli (Random Forest, XGBoost, LightGBM) osiągnęła skuteczność 99.77\%. Wynik ten, choć imponujący, sugerował trywialność problemu klasyfikacji na czystych danych syntetycznych.
+Na oryginalnym zbiorze danych (bez szumu i braków) modele osiągały bardzo wysoką skuteczność, co sugeruje, że problem klasyfikacji na danych idealnych jest relatywnie łatwy. Dla porównywanych algorytmów uzyskano następujące wartości Accuracy (zbiór testowy):
 
 \begin{enumerate}
-    \item Random Forest, LightGBM i XGBoost ~99.8\% - w czystych danych, gdzie nie ma ryzyka przeuczenia na szumie, agresywne dopasowanie Lasu Losowego (low bias) sprawdza się najlepiej. Las tworzy "mapę idealną", podczas gdy Boosting wciąż ostrożnie szuka błędów, których tu po prostu nie ma.
-    \item Decision Tree ~99.3\% - drzewa decyzyjne działają na zasadzie prostych cięć (np. "jeśli X > 5 to Tak"). W danych idealnych te granice są ostre i wyraźne. Algorytm nie myli się, bo nie ma mylących punktów
-    \item Voting ~99.3\% i Stacking ~0.99.1\% - uśredniają wyniki kilku modeli
-    \item KNN: ~97.3\% - model oparty na geometrii i odległości, czyli wrażliwy na niepełne dane
+    \item Random Forest, XGBoost i LightGBM: \textbf{99.77\%} (0.9977) – na czystych danych modele zespołowe i boosting niemal perfekcyjnie rozdzielają klasy.
+    \item Decision Tree oraz Voting (Soft): \textbf{99.32\%} (0.9932) – bardzo dobry wynik, ale niższy niż metody zespołowe/boosting.
+    \item Stacking: \textbf{99.09\%} (0.9909) – łączenie modeli daje wysoką jakość, choć w tym wariancie ustępuje najlepszym.
+    \item KNN: \textbf{97.27\%} (0.9727) – model oparty na dystansie jest bardziej wrażliwy na charakterystykę cech i granice klas.
 \end{enumerate}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\linewidth]{ideal.png}
-    \caption{Enter Caption}
+    \caption{Ranking modeli w scenariuszu idealnym (bez dodatkowego szumu i braków danych): porównanie Accuracy na zbiorze testowym.}
     \label{fig:placeholder}
 \end{figure}
 
@@ -496,24 +496,24 @@ Na oryginalnym zbiorze danych większość modeli (Random Forest, XGBoost, Light
 \subsubsection{Scenariusz "Rzeczywisty" (po uszkodzeniu danych)}
 Po wprowadzeniu szumu i braków danych zaobserwowano spadek wydajności wszystkich modeli. Ranking modeli w trudnych warunkach przedstawia się następująco (wyniki na zbiorze testowym):
 \begin{enumerate}
-    \item XGBoost 95.91\% i LightGBM 95.68\% - najwyższa odporność na szum
-    \item Random Forest 94.32\% - odporność na wariancję przez uśrednianie danych
-    \item Stacking 93.86\% i Voting 92.27\%
-    \item Decision Tree 89.55\% i KNN 86.59\% - drzewo często uczy się szumu (overfitting), zamiast prawdziwych reguł, KNN traktuje szum na równi z sygnałem
+    \item LightGBM: \textbf{96.14\%} (0.9614) oraz XGBoost: \textbf{95.91\%} (0.9591) – najwyższa odporność na szum i braki danych.
+    \item Random Forest: \textbf{94.32\%} (0.9432) – odporność na wariancję dzięki uśrednianiu wielu drzew.
+    \item Stacking: \textbf{93.86\%} (0.9386) oraz Voting (Soft): \textbf{92.27\%} (0.9227) – metody zespołowe oparte o agregację poprawiają stabilność, ale ustępują boostingowi.
+    \item Decision Tree: \textbf{89.55\%} (0.8955) oraz KNN: \textbf{86.59\%} (0.8659) – modele proste/dystansowe najsilniej tracą na degradacji jakości danych.
 \end{enumerate}
 
 
 \begin{figure}
     \centering
     \includegraphics[width=0.95\linewidth]{Untitled-1.png}
-    \caption{Enter Caption}
+    \caption{Ranking wszystkich modeli w scenariuszu "rzeczywistym" (po uszkodzeniu danych): porównanie Accuracy na zbiorze testowym.}
     \label{fig:placeholder}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.75\linewidth]{xgb.png}
-    \caption{Enter Caption}
+    \caption{Przykładowa wizualizacja jakości wybranego modelu boostingowego (XGBoost) w scenariuszu z uszkodzonymi danymi.}
     \label{fig:placeholder}
 \end{figure}
 
