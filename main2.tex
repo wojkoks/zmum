@@ -576,12 +576,20 @@ Macierz korelacji (Rys. \ref{fig:opt_corr_heatmap}) służyła jako kontrola red
     \label{fig:opt_feature_selection_comparison}
 \end{figure}
 
-\begin{figure}[H]
+\begin{table}[H]
     \centering
-    \includegraphics[width=0.95\linewidth]{images/optimization/feature_selection_table.png}
-    \caption{Tabela porównawcza metod selekcji cech (Cz.3) wraz z liczbą wybranych cech.}
-    \label{fig:opt_feature_selection_table}
-\end{figure}
+    \caption{Porównanie metod selekcji cech - F1 Score (CV i test).}
+    \label{tab:feature_selection}
+    \begin{tabular}{lrrrr}
+        \toprule
+        Metoda & Liczba\_cech & F1\_CV & F1\_test & Opis \\
+        \midrule
+        Baseline (wszystkie cechy) & 9 & 0.9531 & 0.9546 & Model bez selekcji cech \\
+        SelectKBest (k=7) & 7 & 0.9520 & 0.9535 & Mutual information \\
+        Permutation Importance (top 4) & 4 & 0.9490 & 0.9505 & Najważniejsze cechy \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
 Wyniki selekcji cech (Rys. \ref{fig:opt_feature_selection_comparison} oraz \ref{fig:opt_feature_selection_table}) pokazują, że najlepszy rezultat uzyskano dla konfiguracji \textbf{bez redukcji cech}. Model bazowy (wszystkie cechy) osiągnął $F_1$\textsubscript{CV}$\approx 0.9531$ oraz $F_1$\textsubscript{test}$\approx 0.9546$. Metoda SelectKBest wskazała jako optymalne $k=9$ (czyli pełen zestaw cech), co w praktyce oznacza brak realnej selekcji i taki sam wynik jak baseline. Z kolei redukcja do 4 cech wybranych przez Permutation Importance spowodowała silny spadek jakości ($F_1$\textsubscript{CV}$\approx 0.8801$, $F_1$\textsubscript{test}$\approx 0.8783$).
 
@@ -626,12 +634,19 @@ W praktyce o wyborze metody decyduje nie tylko maksymalizacja $F_1$\textsubscrip
 \subsubsection{Zysk jakości: przed vs po optymalizacji}
 Końcowym krokiem było zestawienie zmian jakości względem konfiguracji bazowej.
 
-\begin{figure}[H]
+\begin{table}[H]
     \centering
-    \includegraphics[width=0.95\linewidth]{images/optimization/gains_table.png}
-    \caption{Tabela zysków jakości (baseline vs po optymalizacji) dla $F_1$ macro (Cz.3).}
-    \label{fig:opt_gains_table}
-\end{figure}
+    \caption{Tabela zysków jakości (baseline vs po optymalizacji) dla $F_1$ macro.}
+    \label{tab:gains}
+    \begin{tabular}{lrrrrrrrr}
+        \toprule
+        Etap & F1\_CV & F1\_test & Cechy & Metoda & Zysk\_F1\_CV & Zysk\_F1\_test & Zysk\_F1\_CV\_proc & Zysk\_F1\_test\_proc \\
+        \midrule
+        Przed optymalizacją & 0.9531 & 0.9546 & 9 & Baseline &  &  &  &  \\
+        Po optymalizacji & 0.9615 & 0.9632 & 9 & Optuna (Bayesian) & 0.0085 & 0.0086 & 0.89 & 0.91 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
 \begin{figure}[H]
     \centering
